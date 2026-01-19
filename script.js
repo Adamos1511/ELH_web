@@ -33,6 +33,21 @@ const zkratkyTymu = {
   "Bílí Tygři Liberec": "LIB",
   "Rytíři Kladno": "KLA"
 };
+const nazvyTymu = {
+  CBU: "Banes Motor České Budějovice",
+  PLZ: "HC Škoda Plzeň",
+  SPA: "HC Sparta Praha",
+  TRI: "HC Oceláři Třinec",
+  KOM: "HC Kometa Brno",
+  MBL: "BK Mladá Boleslav",
+  LIT: "HC Verva Litvínov",
+  KVA: "HC Energie Karlovy Vary",
+  OLO: "HC Olomouc",
+  LIB: "Bílí Tygři Liberec",
+  HRA: "Mountfield HK",
+  PCE: "HC Dynamo Pardubice",
+  KLA: "Rytíři Kladno",
+};
 
 // --- FUNKCE PRO ZOBRAZENÍ LOGA TÝMU ---
 function logoTymu(nazev) {
@@ -44,7 +59,7 @@ function logoTymu(nazev) {
 
 // --- NAČTENÍ DAT Z CSV ---
 async function nactiData() {
-  const response = await fetch("https://raw.githubusercontent.com/Adamos1511/ELH-web/refs/heads/main/hraciELH.csv");
+  const response = await fetch("https://raw.githubusercontent.com/Adamos1511/ELH_web/refs/heads/main/hraciELH.csv");
   const text = await response.text();
   const radky = text.trim().split("\n").slice(1);
 
@@ -67,6 +82,15 @@ async function nactiData() {
   naplnitFiltry();
   zobrazHrace(hraciData);
 }
+let dataKluby = [];
+
+Papa.parse("https://raw.githubusercontent.com/Adamos1511/ELH-web/main/kluby.csv", {
+  download: true,
+  header: true,
+  complete: function(results) {
+    dataKluby = results.data;
+  }
+});
 
 // --- ZOBRAZENÍ HRÁČŮ ---
 function zobrazHrace(data) {
@@ -219,40 +243,6 @@ function filtruj() {
   );
 
 
-
-/* === PO KLIKNUTÍ NA KLUB === */
-function otevriKlub(zkratka) {
-  const klub = kluby.find(k => k.zkratka === zkratka);
-  const hraciTymu = hraciData.filter(h => h.tym.includes(klub.nazev));
-
-  let okno = window.open("", "_blank");
-  okno.document.write(`
-    <html>
-      <head>
-        <title>${klub.nazev} - Soupiska</title>
-        <link rel="stylesheet" href="style.css">
-      </head>
-      <body style="padding:20px;">
-        <h1>${klub.nazev}</h1>
-        <img src="https://raw.githubusercontent.com/Adamos1511/ELH-web/main/loga_tymu/${zkratka}.png" style="height:100px;"><br><br>
-        <h2>Soupiska týmu</h2>
-        <div class="hraci-grid">
-          ${hraciTymu.map(h => `
-            <div class="hrac-karta">
-              ${h.foto ? `<img src="${h.foto}" style="width:100%;border-radius:8px;">` : ""}
-              <h3>${h.jmeno} ${h.prijmeni}</h3>
-              <p><b>Pozice:</b> ${h.pozice}</p>
-              <p><b>Věk:</b> ${h.vek}</p>
-              <p><b>Národnost:</b> ${h.narodnost}</p>
-              <p><b>Smlouva:</b> ${h.smlouva}</p>
-            </div>
-          `).join("")}
-        </div>
-      </body>
-    </html>
-  `);
-}
-
   if (razeni) {
   filtrovani.sort((a, b) => {
     switch (razeni) {
@@ -322,6 +312,139 @@ function zobrazKluby() {
 
   document.getElementById("kluby").style.display = "block";
 }
+function otevriKlub(zkratka) {
+  // Najdeme klub podle názvu týmu
+  const klub = dataKluby.find(k => k["NÁZEV TÝMU"] === zkratka);
+  if (!klub) {
+    alert("⚠️ Klub nebyl nalezen v CSV souboru.");
+    console.log("Hledaná hodnota:", zkratka);
+    console.log("Dostupné hodnoty:", dataKluby.map(k => k["NÁZEV TÝMU"]));
+    return;
+  }
+
+  // Najdeme hráče podle týmu
+  const hraciTymu = hraciData.filter(h => h.tym === zkratka);
+
+  // Otevře novou kartu
+  const okno = window.open("", "_blank");
+  okno.document.write(`
+    <html lang="cs">
+      <head>
+        <meta charset="UTF-8">
+        <title>${klub["NÁZEV TÝMU"]}</title>
+        <link rel="stylesheet" href="style.css">
+        <style>
+          body {
+            background: linear-gradient(to bottom, #001147, #002b80);
+            color: white;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            padding: 40px;
+          }
+          .klub-detail {
+            text-align: center;
+            margin-bottom: 40px;
+          }
+          .klub-detail img {
+            height: 120px;
+            margin-bottom: 10px;
+          }
+          .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px 25px;
+            max-width: 950px;
+            margin: 0 auto 40px auto;
+            text-align: left;
+            background: rgba(255,255,255,0.08);
+            padding: 20px 40px;
+            border-radius: 15px;
+          }
+          .info-grid p {
+            margin: 4px 0;
+            font-size: 15px;
+          }
+          h1 {
+            font-size: 30px;
+            margin-bottom: 15px;
+          }
+          h2 {
+            text-align: center;
+            margin-top: 50px;
+            margin-bottom: 10px;
+            font-size: 24px;
+          }
+          .hraci-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+          }
+          .hrac-karta {
+            background: #fff;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            color: black;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+          }
+          .hrac-karta:hover {
+            transform: scale(1.04);
+          }
+        </style>
+      </head>
+
+      <body>
+        <div class="klub-detail">
+          <img src="https://raw.githubusercontent.com/Adamos1511/ELH-web/main/loga_tymu/${zkratka}.png" alt="${klub["NÁZEV TÝMU"]}">
+          <h1>${klub["NÁZEV TÝMU"]}</h1>
+        </div>
+
+        <div class="info-grid">
+          <p><b>Rok založení:</b> ${klub["ROK ZALOŽENÍ"] || "-"}</p>
+          <p><b>Počet titulů:</b> ${klub["POČET TITULŮ"] || "-"}</p>
+          <p><b>Hlavní trenér:</b> ${klub["HLAVNÍ TRENÉR"] || "-"}</p>
+          <p><b>Sezona kdy nastoupil:</b> ${klub["SEZONA KDY NASTOUPIL"] || "-"}</p>
+          <p><b>Dní jako hl. trenér:</b> ${klub["DNÍ JAKO HL.TRENÉR"] || "-"}</p>
+          <p><b>Poslední titul:</b> ${klub["POSLEDNÍ TITUL"] || "-"}</p>
+          <p><b>Průměrná návštěvnost:</b> ${klub["PRŮMĚRNÁ NÁVŠTĚVNOST"] || "-"}</p>
+          <p><b>Kapacita stadionu:</b> ${klub["KAPACITA"] || "-"}</p>
+          <p><b>% zaplněnost:</b> ${klub["% ZAPLNĚNOST"] || "-"}</p>
+          <p><b>Název stadionu:</b> ${klub["NÁZEV STADIONU"] || "-"}</p>
+        </div>
+
+        <h2>Výsledky umístění</h2>
+        <div class="info-grid">
+          <p><b>2024/25 ZČ:</b> ${klub["2024/25 ZČ"] || "-"}</p>
+          <p><b>2024/25 Playoff:</b> ${klub["2024/25 PLAYOFF"] || "-"}</p>
+          <p><b>2023/24 ZČ:</b> ${klub["2023/24 ZČ"] || "-"}</p>
+          <p><b>2023/24 Playoff:</b> ${klub["2023/24 PLAYOFF"] || "-"}</p>
+          <p><b>2022/23 ZČ:</b> ${klub["2022/23 ZČ"] || "-"}</p>
+          <p><b>2022/23 Playoff:</b> ${klub["2022/23 PLAYOFF"] || "-"}</p>
+          <p><b>2021/22 ZČ:</b> ${klub["2021/22 ZČ"] || "-"}</p>
+          <p><b>2021/22 Playoff:</b> ${klub["2021/22 PLAYOFF"] || "-"}</p>
+          <p><b>2020/21 ZČ:</b> ${klub["2020/21 Z"] || "-"}</p>
+          <p><b>2020/21 Playoff:</b> ${klub["2020/21 PLAYOFF"] || "-"}</p>
+        </div>
+
+        <h2>Soupiska týmu</h2>
+        <div class="hraci-grid">
+          ${hraciTymu.map(h => `
+            <div class="hrac-karta">
+              ${h.foto ? `<img src="${h.foto}" style="width:100%;border-radius:8px;">` : ""}
+              <h3>${h.jmeno} ${h.prijmeni}</h3>
+              <p><b>Pozice:</b> ${h.pozice}</p>
+              <p><b>Věk:</b> ${h.vek}</p>
+              <p><b>Národnost:</b> ${h.narodnost}</p>
+              <p><b>Smlouva:</b> ${h.smlouva}</p>
+            </div>
+          `).join("")}
+        </div>
+      </body>
+    </html>
+  `);
+}
+
 
 
 
